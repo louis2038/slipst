@@ -43,17 +43,19 @@
 // - attrs: extra HTML attributes merged into the generated .slipst-boxjs element.
 // - kind: runtime category stored in box.kind and reflected as slipst-boxjs-<kind>.
 #let boxjs(html: "", css: "", js: "", height: 6cm, width: auto, class: "", style: "", attrs: (:), kind: "boxjs") = {
-  metadata((slipst-boxjs: (
-    html: _source(html),
-    css: _source(css),
-    js: _source(js),
-    height: height,
-    width: width,
-    class: _source(class),
-    style: _source(style),
-    attrs: attrs,
-    kind: _source(kind),
-  )))
+  metadata((
+    slipst-boxjs: (
+      html: _source(html),
+      css: _source(css),
+      js: _source(js),
+      height: height,
+      width: width,
+      class: _source(class),
+      style: _source(style),
+      attrs: attrs,
+      kind: _source(kind),
+    ),
+  ))
 }
 
 // Anime.js is now a template over the generic boxjs primitive.
@@ -78,14 +80,19 @@
 #let slipst-counter = counter("slipst")
 #let slipst-alter-counter = counter("slipst-alter")
 
+// Read the current alter index. Use inside #context blocks that wrap cetz.canvas().
+#let get-alter() = slipst-alter-counter.get().first()
+#let get-mode() = preview-mode.get()
+
 // Reveal content only on selected alter steps.
 // Parameters:
 // - ranges: alter indexes where body should be visible, e.g. "2", "2-", "2-4", or ("1", "3-").
 // - cover: function used when body is outside ranges; hide keeps layout space, `it => none` removes it.
-// - raw: if true, evaluate immediately; otherwise use context so the current alter counter is available.
+// - raw: kept for API compatibility, has no effect.
+// - _alter: override the alter index. Required inside cetz.canvas() where context is unavailable.
 // - body: content controlled by the visibility rule.
 // In preview/PDF mode, every alter is shown at once, so body is always returned.
-#let uncover(ranges, cover: hide, raw: false, body) = {
+#let uncover(ranges, cover: hide, raw: false, alter: none, mode: none, body) = {
   let inner = () => {
     if preview-mode.get() {
       return body
@@ -100,10 +107,21 @@
       cover(body)
     }
   }
-  if raw {
-    inner()
+  if mode != none and alter != none {
+    if mode {
+      return body
+    }
+    // No context needed: the caller provides the alter index directly.
+    // Used inside cetz.canvas() where Typst context is not available.
+    let ranges = _parse_ranges(ranges)
+    let should-show = _is_in_ranges(alter, ranges)
+    if should-show { body } else { cover(body) }
   } else {
-    context inner()
+    if raw {
+      inner()
+    } else {
+      context inner()
+    }
   }
 }
 
@@ -248,7 +266,12 @@
 // Each alter step duplicates the slip in the same grid cell and JS toggles opacity.
 #let _slip(slip, section-idx: 1, slip-idx: 1, width: auto, show-fn: it => it) = context {
   let global-slip-idx = slipst-counter.get().first()
-  let attrs = (class: "slip", data-section: str(section-idx), data-slip: str(slip-idx), "data-global-slip": str(global-slip-idx))
+  let attrs = (
+    class: "slip",
+    data-section: str(section-idx),
+    data-slip: str(slip-idx),
+    "data-global-slip": str(global-slip-idx),
+  )
 
   let actions = slip
     .filter(it => it.func() == metadata)
