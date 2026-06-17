@@ -140,30 +140,46 @@ The URL hash stores the current position as `#section-slip-alter`, for example
 
 ### Interaction Modes
 
-Slipst has three interaction modes that change how the mouse wheel behaves.
-The overlay in the bottom-right corner shows the current position
-(`section.slip / total`) and its background color reflects the active mode.
+Slipst has three interaction modes. The overlay in the bottom-right corner shows
+the current position (`section.slip / total`) and its background color reflects
+the active mode.
 
-| Mode | Wheel | Color |
-|---|---|---|
-| **slip** (default) | Next/previous slip/alter, wraps across sections | Dark |
-| **animation** | Forwarded to boxjs widgets | Blue |
-| **section** | Next/previous section (jumps entire sections) | Orange |
+| Mode | Color |
+|---|---|
+| **slip** (default) | Dark |
+| **animation** | Blue |
+| **section** | Orange |
 
-**Switching modes:**
+### Controls
 
-- **Short middle-click** cycles between **slip** and **section** mode.
-- **Long middle-click** (hold >400ms) enters **animation** mode.
-- **Any middle-click** while in animation mode exits back to **slip** mode.
+There are two navigation styles:
 
-**Section wrapping in slip mode:** when you reach the last slip/alter of a
-section, the wheel automatically jumps to the first slip of the next section.
-Similarly, scrolling up at the beginning of a section jumps to the last
-slip/alter of the previous section.
+**With transitions** (click, space): advances through slips/alters with smooth
+animations. Double-click or double-space at the end of a section jumps to the
+next section.
 
-**Double-click at end of section:** when you are on the last slip/alter of a
-section, double-clicking quickly jumps to the next section. This is useful for
-wireless presenter mice.
+**Without transitions** (wheel, arrow up/down): scrolls through slips instantly.
+Automatically wraps across section boundaries — wheel up at the beginning of a
+section jumps to the end of the previous section; wheel down at the end jumps to
+the beginning of the next section.
+
+**Mode switching** (middle-click, Enter):
+
+- **Short press** cycles between **slip** and **section** mode.
+- **Long press** (hold >400ms) enters **animation** mode.
+- **Any press** while in animation mode exits back to **slip** mode.
+
+**Full control map:**
+
+| Input | Action |
+|---|---|
+| Left click / Space | Next slip/alter (with transitions) |
+| Double-click / Double-space (at section end) | Next section |
+| Wheel / Arrow up/down | Previous/next slip (no transitions, section wrapping) |
+| Arrow left/right | Previous/next section |
+| Middle-click / Enter (short) | Cycle slip ↔ section mode |
+| Middle-click / Enter (long) | Toggle animation mode |
+| PageDown / PageUp | Next/previous slip (no transitions) |
 
 **Wheel reactivity:** during rapid wheel scrolling, CSS transitions are
 temporarily disabled for instant feedback. Transitions resume automatically

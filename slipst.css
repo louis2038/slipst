@@ -12,7 +12,9 @@
   --relative-spacing: calc(var(--slip-spacing) * var(--slip-1cm));
   --relative-margin: calc(var(--slip-margin) * var(--slip-1cm));
 
-  --transition-duration: 0.5s;
+  --transition-duration-configured: 0.5s;
+  --transition-duration: var(--transition-duration-configured);
+  --section-transition-duration: var(--transition-duration-configured);
 }
 
 body {
@@ -54,7 +56,7 @@ main {
   grid-template-rows: 100%;
 
   left: 0;
-  transition: left var(--transition-duration) ease-in-out;
+  transition: left var(--section-transition-duration) ease-in-out;
 }
 
 .section {
@@ -110,7 +112,10 @@ main {
   padding: 0.3em 0.7em;
   border-radius: 0.5em;
   font-size: 0.75em;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   color: rgba(255, 255, 255, 0.9);
   background: rgba(0, 0, 0, 0.45);
   pointer-events: none;

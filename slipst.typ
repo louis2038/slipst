@@ -332,14 +332,28 @@
 // Main show rule. It has two paths:
 // - non-HTML output: show a readable linear preview/handout;
 // - HTML output: generate a complete web document with CSS, JS, and slip DOM nodes.
-#let slipst(body, width: 16cm, spacing: auto, margin: 0.5cm, handout: false, show-fn: it => it) = {
+#let slipst(body, width: 16cm, spacing: auto, margin: 0.5cm, duration: 500, handout: false, show-fn: it => it) = {
   if dictionary(std).at("html", default: none) == none {
     return context show-fn({
       set page(width: width + margin * 2, height: auto, margin: margin)
-      let size = measure(body)
       preview-mode.update(true)
-      body
+
+      let resolved-spacing = if spacing == auto { par.spacing } else { spacing }
+      let sections = _cut_sections(body)
+      let section-idx = 0
+      for section in sections {
+        section-idx += 1
+        if section-idx > 1 {
+          pagebreak()
+        }
+        for slip in section {
+          slip.join()
+          v(resolved-spacing)
+        }
+      }
+
       if not handout {
+        let size = measure(body)
         footnote(numbering: it => hide[it])[
           #smallcaps[Note]: This is a quick preview of the content of the presentation.
           For the full experience, please export to HTML.
@@ -363,6 +377,7 @@
       "--slip-width": width.to-absolute().cm(),
       "--slip-spacing": spacing.to-absolute().cm(),
       "--slip-margin": margin.to-absolute().cm(),
+      "--transition-duration-configured": str(duration / 1000) + "s",
     )
     html.html(style: variables.pairs().map(((k, v)) => k + ": " + str(v)).join("; "), {
       html.meta(charset: "utf-8")

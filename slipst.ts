@@ -97,10 +97,7 @@ function activeBoxjsBoxes() {
     const slip = host.closest(".slip");
     if (!(slip instanceof HTMLElement)) return false;
 
-    const sectionIndex = parseInt(
-      slip.getAttribute("data-section") ?? "0",
-      10,
-    );
+    const sectionIndex = parseInt(slip.getAttribute("data-section") ?? "0", 10);
     const slipIndex = parseInt(slip.getAttribute("data-slip") ?? "0", 10);
     const alterIndex = parseInt(
       slip.getAttribute("data-slip-alter-idx") ?? "1",
@@ -135,6 +132,21 @@ function sendWheelToBoxjsBoxes(event: WheelEvent) {
   return true;
 }
 
+// Send a synthetic deltaY to active Boxjs widgets (used by keyboard in animation mode).
+function sendDeltaToBoxjsBoxes(deltaY: number) {
+  const boxes = activeBoxjsBoxes();
+  boxes.forEach(([host, box]) => {
+    box.controller.onWheel?.({
+      anime,
+      root: box.root,
+      host,
+      box: box.info,
+      event: new WheelEvent("wheel"),
+      deltaY,
+    });
+  });
+}
+
 // Typst may export direct SVG frames; make those responsive inside a slip.
 document.querySelectorAll(".slip > svg").forEach((svg) => {
   if (svg instanceof SVGElement) {
@@ -148,9 +160,10 @@ document.querySelectorAll(".slip > svg").forEach((svg) => {
  * The hash should be in the format "#section-slip-alter".
  */
 function parseHash() {
-  const hashGroups = /^(?<section>\d+)(?:-(?<slip>\d+))?(?:-(?<alter>\d+))?/.exec(
-    location.hash.slice(1),
-  )?.groups;
+  const hashGroups =
+    /^(?<section>\d+)(?:-(?<slip>\d+))?(?:-(?<alter>\d+))?/.exec(
+      location.hash.slice(1),
+    )?.groups;
 
   let section = parseInt(hashGroups?.section ?? "1", 10);
   if (isNaN(section) || section < 1) {
@@ -170,8 +183,11 @@ function parseHash() {
   return { section, slip, alter };
 }
 
-const { section: initialSection, slip: initialSlip, alter: initialAlter } =
-  parseHash();
+const {
+  section: initialSection,
+  slip: initialSlip,
+  alter: initialAlter,
+} = parseHash();
 
 // Presentation state. Signals re-run the layout/visibility effects below when changed.
 const currentSection = signal(initialSection);
@@ -282,13 +298,21 @@ function nextSection() {
 }
 
 /**
- * Go to the first slip of the previous horizontal section.
+ * Go to the previous horizontal section. If toEnd is true, land on the last slip/alter.
  */
-function previousSection() {
+function previousSection(toEnd = false) {
   if (currentSection.value > 1) {
     currentSection.value -= 1;
-    currentSlip.value = 1;
-    currentSlipAlter.value = 1;
+    if (toEnd) {
+      const lastSlip = sectionSlipCounts.get(currentSection.value) ?? 1;
+      currentSlip.value = lastSlip;
+      const lastAlter =
+        slipAlters.get(slipAlterKey(currentSection.value, lastSlip)) ?? 1;
+      currentSlipAlter.value = lastAlter;
+    } else {
+      currentSlip.value = 1;
+      currentSlipAlter.value = 1;
+    }
   }
 }
 
@@ -305,9 +329,9 @@ const navigateWheel = debounce(
         nextSlip();
       }
     } else {
-      // Wheel up: if at beginning of section, go to previous section.
+      // Wheel up: if at beginning of section, go to end of previous section.
       if (isAtSectionStart()) {
-        previousSection();
+        previousSection(true);
       } else {
         previousSlip();
       }
@@ -318,9 +342,10 @@ const navigateWheel = debounce(
 );
 
 // Wheel reactivity: disable transitions during rapid scrolling, restore after a pause.
+// Reads the configured duration from the CSS variable set by Typst.
 const restoreTransitions = debounce(
   () => {
-    document.documentElement.style.setProperty("--transition-duration", "0.5s");
+    document.documentElement.style.removeProperty("--transition-duration");
   },
   300,
   { edges: ["trailing"] },
@@ -339,30 +364,33 @@ function isAtSectionStart(): boolean {
   return currentSlip.value <= 1 && currentSlipAlter.value <= 1;
 }
 
-// Double-click detection: a fast second click at the end of a section jumps to the next section.
+// Double-click/double-space detection: a fast second input at the end of a section jumps to the next section.
 let clickTimer: ReturnType<typeof setTimeout> | null = null;
 
-if (main) {
-  // Left click: double-click at section end → next section, otherwise → next slip/alter.
-  main.addEventListener("click", (event) => {
-    // event.detail counts rapid clicks: 2 = double-click.
-    if (event.detail === 2 && isAtSectionEnd()) {
-      if (clickTimer) {
-        clearTimeout(clickTimer);
-        clickTimer = null;
-      }
+function handleClickOrSpace() {
+  // If at end of section, wait briefly for a double input.
+  if (isAtSectionEnd()) {
+    if (clickTimer) {
+      // Second input within 200ms → next section.
+      clearTimeout(clickTimer);
+      clickTimer = null;
       nextSection();
       return;
     }
-
-    if (clickTimer) clearTimeout(clickTimer);
     clickTimer = setTimeout(() => {
+      // Single input at end of section → just nextSlip (stays in place).
       clickTimer = null;
-      nextSlip();
     }, 200);
-  });
+  } else {
+    nextSlip();
+  }
+}
 
-  // Middle-click: long press enters/exits animation mode, short press cycles slip ↔ section.
+if (main) {
+  // Left click: with transitions. Double-click at section end → next section.
+  main.addEventListener("click", () => handleClickOrSpace());
+
+  // Middle-click: short press cycles slip ↔ section, long press toggles animation mode.
   let middleDownTime = 0;
   main.addEventListener("mousedown", (event) => {
     if (event.button === 1) {
@@ -382,15 +410,13 @@ if (main) {
 
     const duration = Date.now() - middleDownTime;
     if (duration > 400) {
-      // Long press → enter animation mode.
       currentMode.value = "animation";
     } else {
-      // Short press → cycle between slip and section.
       currentMode.value = currentMode.value === "slip" ? "section" : "slip";
     }
   });
 
-  // Wheel behavior depends on mode. Transitions are disabled during scrolling for snappiness.
+  // Wheel: no transitions, section wrapping. In animation mode, forwards to widgets.
   main.addEventListener(
     "wheel",
     (event) => {
@@ -410,24 +436,92 @@ if (main) {
     { passive: false },
   );
 
-  // Touch gestures mirror keyboard/mouse navigation on mobile devices.
+  // Touch gestures.
   const anyTouch = new AnyTouch(main);
-  anyTouch.on("swipeup", nextSlip);
+  anyTouch.on("swipeup", () => {
+    document.documentElement.style.setProperty("--transition-duration", "0s");
+    restoreTransitions();
+    if (isAtSectionStart()) {
+      previousSection(true);
+    } else {
+      previousSlip();
+    }
+  });
   anyTouch.on("swipeleft", nextSection);
-  anyTouch.on("swiperight", previousSection);
-  anyTouch.on("swipedown", previousSlip);
+  anyTouch.on("swiperight", () => previousSection());
+  anyTouch.on("swipedown", () => {
+    document.documentElement.style.setProperty("--transition-duration", "0s");
+    restoreTransitions();
+    if (isAtSectionEnd()) {
+      nextSection();
+    } else {
+      nextSlip();
+    }
+  });
 }
 
 // Keyboard navigation for presenter remotes and common slideshow shortcuts.
 document.addEventListener("keydown", (event) => {
-  if (["ArrowDown", "PageDown", " ", "Enter"].includes(event.key)) {
-    nextSlip();
-  } else if (["ArrowUp", "PageUp", "Backspace"].includes(event.key)) {
-    previousSlip();
+  // In animation mode, arrow keys control boxjs widgets (simulate wheel).
+  if (currentMode.value === "animation") {
+    if (["ArrowRight", "ArrowDown"].includes(event.key)) {
+      event.preventDefault();
+      sendDeltaToBoxjsBoxes(100);
+      return;
+    } else if (["ArrowLeft", "ArrowUp"].includes(event.key)) {
+      event.preventDefault();
+      sendDeltaToBoxjsBoxes(-100);
+      return;
+    }
+  }
+
+  // Arrow Up/Down: no transitions, section wrapping (like wheel).
+  if (event.key === "ArrowUp" || event.key === "PageUp") {
+    event.preventDefault();
+    document.documentElement.style.setProperty("--transition-duration", "0s");
+    restoreTransitions();
+    if (isAtSectionStart()) {
+      previousSection(true);
+    } else {
+      previousSlip();
+    }
+  } else if (event.key === "ArrowDown" || event.key === "PageDown") {
+    event.preventDefault();
+    document.documentElement.style.setProperty("--transition-duration", "0s");
+    restoreTransitions();
+    if (isAtSectionEnd()) {
+      nextSection();
+    } else {
+      nextSlip();
+    }
   } else if (event.key === "ArrowRight") {
+    event.preventDefault();
     nextSection();
   } else if (event.key === "ArrowLeft") {
+    event.preventDefault();
     previousSection();
+  }
+});
+
+// Enter key: toggles animation mode directly.
+document.addEventListener("keyup", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+
+    // Enter always toggles animation mode (no cycle needed since arrows handle sections).
+    if (currentMode.value === "animation") {
+      currentMode.value = "slip";
+    } else {
+      currentMode.value = "animation";
+    }
+  }
+});
+
+// Space: with transitions. Double-space at section end → next section.
+document.addEventListener("keydown", (event) => {
+  if (event.key === " " && !event.ctrlKey && !event.metaKey) {
+    event.preventDefault();
+    handleClickOrSpace();
   }
 });
 
@@ -512,7 +606,10 @@ const layoutEffect = () => {
   const section = document.querySelector(
     `.section[data-section="${currentSection.value}"]`,
   );
-  if (sectionContainer instanceof HTMLElement && section instanceof HTMLElement) {
+  if (
+    sectionContainer instanceof HTMLElement &&
+    section instanceof HTMLElement
+  ) {
     sectionContainer.style.left = `${-section.offsetLeft}px`;
   }
 
@@ -575,12 +672,11 @@ effect(layoutEffect);
 if (document.defaultView) {
   document.defaultView.addEventListener("resize", () => {
     document.documentElement.style.setProperty("--transition-duration", "0s");
+    document.documentElement.style.setProperty("--section-transition-duration", "0s");
     layoutEffect();
     setTimeout(() => {
-      document.documentElement.style.setProperty(
-        "--transition-duration",
-        "0.5s",
-      );
+      document.documentElement.style.removeProperty("--transition-duration");
+      document.documentElement.style.removeProperty("--section-transition-duration");
     }, 1);
   });
 }
