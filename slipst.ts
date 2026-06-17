@@ -368,6 +368,9 @@ function isAtSectionStart(): boolean {
 let clickTimer: ReturnType<typeof setTimeout> | null = null;
 
 function handleClickOrSpace() {
+  // Ensure transitions are active for click/space navigation.
+  document.documentElement.style.removeProperty("--transition-duration");
+
   // If at end of section, wait briefly for a double input.
   if (isAtSectionEnd()) {
     if (clickTimer) {
@@ -526,6 +529,155 @@ document.addEventListener("keydown", (event) => {
 });
 
 initBoxjsBoxes();
+
+// Collect all notes from the DOM, indexed by section:slip.
+// Deduplicated: when a slip has #alter(n), the same slip is rendered n times
+// with identical data-notes. We only keep one entry per section:slip pair.
+interface NoteEntry {
+  section: number;
+  slip: number;
+  text: string;
+}
+const allNotes: NoteEntry[] = [];
+const seenNotes = new Set<string>();
+document.querySelectorAll(".slip[data-notes]").forEach((el) => {
+  const section = parseInt(el.getAttribute("data-section") ?? "0", 10);
+  const slip = parseInt(el.getAttribute("data-slip") ?? "0", 10);
+  const key = `${section}:${slip}`;
+  if (seenNotes.has(key)) return;
+  seenNotes.add(key);
+  allNotes.push({
+    section,
+    slip,
+    text: el.getAttribute("data-notes") ?? "",
+  });
+});
+
+// BroadcastChannel for syncing with the notes window.
+const notesChannel =
+  typeof BroadcastChannel !== "undefined"
+    ? new BroadcastChannel("slipst-notes")
+    : null;
+
+let notesWindow: Window | null = null;
+
+function sendNotesToWindow() {
+  if (!notesChannel) return;
+  notesChannel.postMessage({
+    type: "update",
+    currentSection: currentSection.value,
+    currentSlip: currentSlip.value,
+    maxSection,
+    notes: allNotes,
+  });
+}
+
+function openNotesWindow() {
+  if (notesWindow && !notesWindow.closed) {
+    notesWindow.focus();
+    sendNotesToWindow();
+    return;
+  }
+
+  notesWindow = window.open("", "slipst-notes", "width=520,height=700");
+  if (!notesWindow) return;
+
+  const doc = notesWindow.document;
+  doc.open();
+  doc.write("<!DOCTYPE html><html><head><meta charset='utf-8'><title>Slipst \u2014 Speaker Notes</title>");
+  const style = doc.createElement("style");
+  style.textContent = [
+    "* { margin: 0; padding: 0; box-sizing: border-box; }",
+    "body { font-family: system-ui, -apple-system, sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 1em; font-size: 14px; }",
+    "h1 { font-size: 1.1em; color: #888; margin-bottom: 0.8em; border-bottom: 1px solid #333; padding-bottom: 0.4em; }",
+    ".section-block { margin-bottom: 1.2em; }",
+    ".section-title { font-size: 0.85em; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4em; }",
+    ".note { padding: 0.5em 0.7em; margin-bottom: 0.3em; border-radius: 0.4em; border-left: 3px solid transparent; opacity: 0.4; transition: opacity 0.3s, background 0.3s, border-color 0.3s; }",
+    ".note.past { opacity: 0.3; border-left-color: #555; }",
+    ".note.current { opacity: 1; background: #16213e; border-left-color: #e94560; color: #fff; }",
+    ".note.future { opacity: 0.5; border-left-color: #0f3460; }",
+    ".note .slip-label { font-size: 0.75em; color: #888; margin-bottom: 0.2em; }",
+    ".note.current .slip-label { color: #e94560; }",
+    ".no-notes { color: #555; font-style: italic; padding: 1em 0; }",
+  ].join("\n");
+  doc.head!.appendChild(style);
+  doc.write("</head><body>");
+  doc.write("<h1>Speaker Notes</h1><div id='notes-content'></div>");
+
+  const renderScript = doc.createElement("script");
+  renderScript.textContent = `
+    const ch = new BroadcastChannel("slipst-notes");
+    ch.onmessage = (event) => {
+      if (event.data.type !== "update") return;
+      render(event.data);
+    };
+    function render(data) {
+      const container = document.getElementById("notes-content");
+      if (!container) return;
+      if (data.notes.length === 0) {
+        container.innerHTML = '<div class="no-notes">No notes found. Use #notes[...] in your presentation.</div>';
+        return;
+      }
+      const sections = new Map();
+      for (const note of data.notes) {
+        const key = note.section;
+        if (!sections.has(key)) sections.set(key, []);
+        sections.get(key).push(note);
+      }
+      let html = "";
+      for (const [sectionIdx, sectionNotes] of sections) {
+        html += '<div class="section-block">';
+        html += '<div class="section-title">Section ' + sectionIdx + " / " + data.maxSection + "</div>";
+        for (const note of sectionNotes) {
+          let cls = "future";
+          if (sectionIdx < data.currentSection) {
+            cls = "past";
+          } else if (sectionIdx === data.currentSection) {
+            if (note.slip < data.currentSlip) {
+              cls = "past";
+            } else if (note.slip === data.currentSlip) {
+              cls = "current";
+            } else {
+              cls = "future";
+            }
+          }
+          html += '<div class="note ' + cls + '">';
+          html += '<div class="slip-label">Slip ' + note.slip + "</div>";
+          html += "<div>" + note.text + "</div>";
+          html += "</div>";
+        }
+        html += "</div>";
+      }
+      container.innerHTML = html;
+      // Auto-scroll to keep the current note visible.
+      const current = container.querySelector(".note.current");
+      if (current) {
+        current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    }
+  `;
+  doc.body!.appendChild(renderScript);
+  doc.write("</body></html>");
+  doc.close();
+  sendNotesToWindow();
+}
+
+// Sync notes window whenever navigation changes.
+effect(() => {
+  // Access reactive values to trigger re-run on change.
+  const _s = currentSection.value;
+  const _sl = currentSlip.value;
+  sendNotesToWindow();
+});
+
+// N key opens the notes window.
+document.addEventListener("keydown", (event) => {
+  if (event.key === "n" || event.key === "N") {
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+    event.preventDefault();
+    openNotesWindow();
+  }
+});
 
 // Inject the section/mode overlay into <main>.
 if (main) {

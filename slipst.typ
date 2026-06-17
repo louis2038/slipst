@@ -23,9 +23,12 @@
   } else if type(it) == content and it.func() == raw {
     it.text
   } else {
-    str(it)
+    repr(it)
   }
 }
+
+// Speaker notes for the current slip. Rendered as plain text in a separate notes window.
+#let notes(body) = metadata((slipst-notes: _source(body)))
 
 // Describe an inline HTML/CSS/JS box without rendering it immediately.
 // The browser runtime reads the data attributes and instantiates the ShadowRoot.
@@ -255,6 +258,20 @@
     .filter(it => type(it) == dictionary)
   let up = actions.rev().find(it => it.at("up", default: none) != none)
   let alter = actions.rev().find(it => it.at("alter", default: none) != none)
+
+  // Extract speaker notes from metadata.
+  let slip-notes = slip
+    .filter(it => it.func() == metadata)
+    .map(it => it.value)
+    .filter(it => type(it) == dictionary)
+    .map(it => it.at("slipst-notes", default: none))
+    .filter(it => type(it) == str)
+  if slip-notes.len() > 1 {
+    warn("Slip has multiple #notes — only the last one will be displayed.")
+  }
+  if slip-notes.len() > 0 {
+    attrs.insert("data-notes", slip-notes.last())
+  }
 
   // A slip can have several alter states; default is one visible state.
   let alter-num = if type(alter) == dictionary {
