@@ -1,6 +1,81 @@
 #import "../dist/lib.typ": *
+#import "template_html.typ": book
 
-#show: slipst
+
+#let test_show(body) = {
+  set text(
+    font: "STIX Two Text",
+    weight: 350,
+    size: 10pt,
+    features: ("liga",),
+  )
+
+  show math.equation: set text(
+    font: "STIX Two Math",
+    features: ("cv04", "ss16"),
+  )
+
+  show cite: it => text(fill: blue, it)
+
+  // break block equations; don't break inline eqs
+  show math.equation: set block(breakable: true)
+  show math.equation.where(block: false): it => box(it)
+
+  // offset the numbering by one because single star could be ambiguous in math, maybe
+  set footnote(numbering: n => numbering("*", n + 1))
+
+  set math.equation(numbering: "(1)")
+  show math.equation: it => {
+    // https://forum.typst.app/t/how-to-conditionally-enable-equation-numbering-for-labeled-equations/977
+    if it.block and not it.has("label") [
+      #counter(math.equation).update(v => v - 1)
+      // since v0.14.0, https://typst.app/docs/changelog/0.14.0/
+      // we can't just set #label("") anymore
+      #math.equation(it.body, block: true, numbering: none)#label("___NOLABEL")
+    ] else {
+      it
+    }
+  }
+  // show equation references as (1)
+  // https://typst.app/docs/reference/model/ref/
+  show ref: it => {
+    let eq = math.equation
+    let el = it.element
+    if el != none and el.func() == eq {
+      link(el.location(), numbering(el.numbering, ..counter(eq).at(el.location())))
+    } else {
+      it
+    }
+  }
+  show math.qed: "▮"
+
+  show link: it => {
+    if type(it.dest) != str {
+      // local link
+      it
+    } else if (it.body == [#it.dest]) {
+      // URL (no custom text)
+      set text(fill: blue)
+      set text(font: "DejaVu Sans Mono", size: 0.8em)
+      box(it)
+    } else {
+      // URL (custom text)
+      set text(fill: blue)
+      show text: underline
+      box(it)
+    }
+  }
+
+  show enum: it => { v(0.9em, weak: true) + it + v(0.9em, weak: true) }
+
+  show figure.where(kind: table): set figure.caption(position: top)
+  show figure.where(kind: table): set figure(gap: 1em)
+  show figure.where(kind: table): it => { v(1.5em, weak: true) + it + v(2em, weak: true) }
+
+  body
+}
+
+#show: slipst.with(show-fn: book)
 
 = Slipst Advanced
 
@@ -8,7 +83,7 @@ Here are some uncategorized advanced features of Slipst that didn't fit into the
 
 #pause
 
-== Absolute Positioning with `up`
+== Absolute Positioning with
 
 We know that `up` can point to an anchor slip, which means to scroll to the top of the anchor slip. <1>
 

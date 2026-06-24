@@ -385,20 +385,12 @@
         section-idx += 1
         if section-idx > 1 {
           pagebreak()
+          [caca proute]
         }
         for slip in section {
           slip.join()
           v(resolved-spacing)
         }
-      }
-
-      if not handout {
-        let size = measure(body)
-        footnote(numbering: it => hide[it])[
-          #smallcaps[Note]: This is a quick preview of the content of the presentation.
-          For the full experience, please export to HTML.
-          (Estimated size: #(calc.ceil(size.height.cm() / width.cm() * 9 / 16)) screens.)
-        ]
       }
     })
   }
