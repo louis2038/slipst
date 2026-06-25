@@ -74,7 +74,7 @@ New section starts here.
 
 ## Positioning with `#up`
 
-`#up(label)` scrolls the camera to a specific slip.
+`#up()` scrolls the camera to the current slip. `#up(label)` scrolls to a labelled slip.
 
 ```typst
 #pause
@@ -84,13 +84,18 @@ Some content with a label. <my-label>
 #up(<my-label>)
 ```
 
+Prefer `#up()` when targeting the current slip. Labels passed to `#up(<label>)` should generally refer to content defined before the `#up` call, ideally in a previous slip. Forward labels and `here` are ordinary Typst locations and may resolve before the current slip counter is stepped, which can produce surprising offsets.
+
 With offset and dy:
 
 ```typst
 #up(<my-label>, offset: -1)     // go to slip before the label
 #up(<my-label>, dy: 5cm)        // scroll to 5cm below the label's top
-#up(here)                        // scroll back to current slip
+#up(<my-label>, end: true)      // align the label's slip bottom with the screen bottom
+#up()                            // scroll back to current slip
 ```
+
+`offset` is counted in slips: `0` = selected slip, `-1` = previous slip, `1` = next slip.
 
 ## Reveal Animations (uncover / only)
 

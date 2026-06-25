@@ -70,11 +70,14 @@ Use `#pause` to define where one slip ends and the next begins. It takes no para
 #pause
 ```
 
-The `#up` command makes the selected slip slide upward out of view when the current slip is displayed. It accepts a [selector](https://typst.app/docs/reference/foundations/selector/) as its argument.
+The `#up` command makes the selected slip slide upward out of view when the current slip is displayed. Without an argument, it targets the current slip. With an argument, it accepts a [selector](https://typst.app/docs/reference/foundations/selector/).
 
 ```typst
+#up()
 #up(<label>)
 ```
+
+Labels passed to `#up(<label>)` should generally refer to content defined before the `#up` call, ideally in a previous slip. Forward labels and `here` are ordinary Typst locations and may resolve before the current slip counter is stepped, which can produce surprising offsets. Prefer `#up()` to target the current slip.
 
 A common pattern is to label a `#pause` and reference it in `#up`:
 
@@ -90,16 +93,24 @@ You can also provide an `offset` to `#up` to select a slip relative to the chose
 #up(<label>, offset: -1)
 ```
 
+The `offset` value is counted in slips, not in screen units: `0` selects the labelled slip, `-1` selects the previous slip, and `1` selects the next slip.
+
 And the `dy` parameter allows you to specify a custom vertical distance for the sliding animation. For example, to scroll to 5cm below the top of the selected slip:
 
 ```typst
 #up(<label>, dy: 5cm)
 ```
 
-For dynamic selections, `#up` can also accept a function that returns a selector. This is useful with context-aware selectors like [`here()`](https://typst.app/docs/reference/introspection/here/). Combined with `offset`, you can slide up the previous slip without an explicit label:
+Use `end: true` to align the bottom of the selected slip with the bottom of the viewport instead of aligning its top with the top of the viewport:
 
 ```typst
-#up(() => here(), offset: -1)
+#up(<label>, end: true)
+```
+
+Combined with `offset`, `#up()` can select slips relative to the current slip without an explicit label:
+
+```typst
+#up(offset: -1)
 ```
 
 ### Replacing Animations

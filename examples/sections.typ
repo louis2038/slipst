@@ -222,7 +222,7 @@ This is where `#alter` comes in. Insert `#alter(n)` to mark the current slip has
 #alter(3)
 ```
 
-#pause#up(here, offset: -1)
+#pause#up(offset: -1)
 
 Inside the slip with `#alter(n)`, you can use `#uncover(...)` to specify which version(s) of the slip a content belongs to. The syntax of `#uncover` is inspired by polylux/touying's, for example:
 - `#uncover("2")` means the content only appears in 2nd version.
@@ -230,7 +230,7 @@ Inside the slip with `#alter(n)`, you can use `#uncover(...)` to specify which v
 - `#uncover("2-")` means the content appears in 2nd version and all later versions.
 - `#uncover(("1", "3"))` means the content appears in 1st and 3rd versions, but not in 2nd version.
 
-#pause#up(here, offset: -1)
+#pause#up(offset: -1)
 
 ```typ
 #alter(3)
@@ -248,3 +248,25 @@ This slip has 3 versions.
 #uncover("1")[This is the 1st version.]
 #uncover("2")[This is the 2nd version.]
 #uncover("3")[This is the 3rd version.]
+
+#pause
+
+#lorem(50)
+#pause
+#up(dy: -4em)
+#lorem(50) <a:lorem>
+
+#pause
+#up()
+
+Ceci est un test du up end ! Nous sommes au debut de la slipst
+
+#pause
+#up(end: true)
+ceci est normalement a la fin de l'écran
+
+#pause
+
+test test
+
+#pause

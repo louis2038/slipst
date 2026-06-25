@@ -46,7 +46,7 @@
   }))
 }
 
-#pause#up(here)
+#pause#up()
 
 And in CeTZ/fletcher diagrams. You need to customize the `cover` parameter of `#uncover` to work with diagrams. The `cover` parameter is a function that is used to cover the content that is not shown.
 For technical reasons, you also need to set `raw: true` and wrap the diagram with `context` to make it work.

@@ -98,7 +98,7 @@ blabla
 )
 
 #pause
-#up(here, offset: -1)
+#up(offset: -1)
 
 #neutral-card[
   In 1982, Alain Aspect's experiments observed correlations that cannot be explained by any local (classical) theory. @Bell_1964
@@ -210,7 +210,7 @@ the classical set $ℒ$ and the non-signaling set $𝒩 𝒮$.
   "NS is upper bound theory",
 )
 #pause
-#up(here, offset: -1)
+#up(offset: -1)
 Let $t$ such that $|N|_1 = 4 t$ for technical reason.
 #def-card[
   *Quantum theory*, formulated with Hilbert spaces, are formulated with *$t -> infinity$*.
@@ -220,14 +220,14 @@ Let $t$ such that $|N|_1 = 4 t$ for technical reason.
 // But in the usual picture, correlations are described as limiting statistics:
 // they appear as points $p$ obtained when the number of experimental runs $t$ becomes large.
 #pause
-#up(here, offset: -1)
+#up(offset: -1)
 
 - For example, with only *4 experimental runs*, it may be impossible to realize a statistic $p ∈ 𝒬$.
 - At this finite scale: either $p ∈ ℒ$ or may even fall outside $𝒩 𝒮$.
 - Our goal is to develop a *constructive approach*: for each finite value of $t$, we want to describe which empirical models are possible and which are not.
 
 #pause
-#up(here)
+#up()
 #diagram(
   $
     edge("-|>", label: "results") & (v_1,v_1,v_2,v_3) edge("-|>", label: "countings") & N_1 = vec(1, 0, 0) -> N_2 = vec(2, 0, 0) -> N_3 = vec(2, 1, 0) -> N_4 = vec(2, 1, 1)
@@ -236,14 +236,14 @@ Let $t$ such that $|N|_1 = 4 t$ for technical reason.
 
 
 #pause
-#up(here, offset: -1)
+#up(offset: -1)
 #red-card[
   We want to observe the trajectory by which a correlation $p$ is progressively built.
 ]
 #pause
 Why does this *create a lattice*? Since $p = N/t$, for example with $t = 4$, there are only 4 possibles correlations for $p$.
 #pause
-#up(here)
+#up()
 #animejs(
   height: 8cm,
   style: "display: grid; place-items: center;",
@@ -634,7 +634,7 @@ Why does this *create a lattice*? Since $p = N/t$, for example with $t = 4$, the
 )
 
 #pause
-#up(here, offset: -1, dy: 2cm)
+#up(offset: -1, dy: 2cm)
 
 #red-card[
   We need to give a *meaning* to all the intermediate experiments,
@@ -674,7 +674,7 @@ $
 // DIAGRAM TODO: Cone of compatible countings with local deterministic generators and lifted PR generators as elementary rays.
 
 #pause
-#up(here)
+#up()
 
 How to build $g$ ? What is the meaning of *being doing $g$*.
 #pause
@@ -769,7 +769,7 @@ How to build $g$ ? What is the meaning of *being doing $g$*.
   "A generator is not produced all at once: it can be produced event by event. Key word: residual state. Say: 'The residual is what remains to be produced.' Top = everything remains, bottom = nothing remains.",
 )
 #pause
-#up(here, offset: -2, dy: 1.5em)
+#up(offset: -2, dy: 1.5em)
 #grid(
   columns: (1fr, 1fr),
   column-gutter: 0.8em,
@@ -785,7 +785,7 @@ How to build $g$ ? What is the meaning of *being doing $g$*.
   "Vocabulary to fix: open = not finished, emission = one event is produced, closed = finished. Do not add new notation.",
 )
 #pause
-#up(here, offset: -1)
+#up(offset: -1)
 #import "@preview/pavemat:0.2.0": pavemat
 #let pav = pavemat(
   pave: (
@@ -813,7 +813,7 @@ We can express observation with a sum of elementary explanation $N = pav = g_(4 
   "Say: 'A visible observation can be decomposed as a sum of complete elementary blocks.' This is the classical/static decomposition.",
 )
 #pause
-#up(here)
+#up()
 #let pavresi = pavemat(
   pave: (
     (path: "SSDDWW", from: (0, 0)),
@@ -902,7 +902,7 @@ We can express observation with *residual state* : $N = pavresi = g_(4 1) = (g_(
   )
 ])
 #pause
-#up(here, offset: -1)
+#up(offset: -1)
 #alter(2)
 
 #def-card[
@@ -916,7 +916,7 @@ We can express observation with *residual state* : $N = pavresi = g_(4 1) = (g_(
   The explanation set of visible count $N$ is $ℋ_𝒢 (N) := {η | N_η = N} = {𝕆 | sum_((g,R) ins 𝕆_η) g minus R = N}$
 ]
 #pause
-#up(here, offset: -2)
+#up(offset: -2)
 
 
 #def-card[
@@ -933,7 +933,7 @@ We can express observation with *residual state* : $N = pavresi = g_(4 1) = (g_(
 // DIAGRAM TODO: Main trajectory picture with P_eta on the left, N_eta in the middle, F_eta on the right.
 
 #pause
-#up(here, offset: -1)
+#up(offset: -1)
 
 === The Signature of an Interruption
 #pause
@@ -952,7 +952,7 @@ We can express observation with *residual state* : $N = pavresi = g_(4 1) = (g_(
 )
 
 #pause
-#up(here)
+#up()
 #animejs(
   height: 8cm,
   style: "display: grid; place-items: center;",
@@ -1241,7 +1241,7 @@ We can express observation with *residual state* : $N = pavresi = g_(4 1) = (g_(
 )
 
 #pause
-#up(here)
+#up()
 
 == What append in the middle?
 
@@ -1418,7 +1418,7 @@ The theory explains a sequence of observations when there exists at least one co
 )
 
 #pause
-#up(here)
+#up()
 
 #neutral-card[
   The constraint behaves like a magnet.
@@ -1578,7 +1578,7 @@ $
 #pause
 #align(center, diagram($edge("rrrr", "-|>") & node(bcol(2)) & & & node(rcol(4))$))
 #pause
-#up(here, offset: -2)
+#up(offset: -2)
 $
   "time"_η =
   k_η / 12 = mat(
@@ -1590,7 +1590,7 @@ $
 $
 
 #pause
-#up(here, offset: -1)
+#up(offset: -1)
 #red-card[
   We can measure how synchronized the events are along the evolution of an explanatory trajectory $η$.
 ]
@@ -1615,7 +1615,7 @@ $
 )
 
 #pause
-#up(here, offset: -1)
+#up(offset: -1)
 
 #red-card[
   Then we can *filter* explanations using $ξ$, depending on the kind of explanation we want: *highly synchronized*, *uniform*, or something else.
@@ -1627,7 +1627,7 @@ $
 ]
 
 #pause
-#up(here, offset: -2, dy: 2em)
+#up(offset: -2, dy: 2em)
 
 #neutral-card[
   This is where the framework becomes genuinely dynamic: *constraints* can act on the *organization of the process*, not only on the final table.
@@ -1666,7 +1666,7 @@ $
 )
 
 #pause
-#up(here, offset: -3, dy: 5pt)
+#up(offset: -3, dy: 5pt)
 
 #right()
 // --------------------------------------------------------- // ANNEXE
@@ -1765,7 +1765,7 @@ Example of context : $only("1", C = {a,b}) only("2", C = {a,b'})$
 It is what is actually recorded.
 
 #pause
-#up(here)
+#up()
 
 === From Local Events to Contextuality
 
@@ -1802,7 +1802,7 @@ $
 A global section means: all counterfactual outcomes are already written.
 
 #pause
-#up(here)
+#up()
 
 == Counts Before Probabilities
 
@@ -1866,7 +1866,7 @@ $
 The marginal coincide on the common contexts. This call *non-signaling*, no information transit between the context (between Alice and Bob). We write this condition $δ N = 0$
 
 #pause
-#up(here)
+#up()
 
 Each context can have him own number of event $|N_C|$, by applying the *non-signaling* condition, this force each context to have the same number of element $∀C ∈ ℳ quad |N_C| = t$.
 
@@ -1880,7 +1880,7 @@ $
 #neutral-card[This describe a cone $𝒮_"ns" = {(N,t) | A_ℳ N = t 𝟙 and δ N = 0} = t G_"ns" inter ℕ$]
 
 #pause
-#up(here)
+#up()
 
 === Noncontextual Countings
 
@@ -1906,7 +1906,7 @@ Contextuality begins when $N$ is compatible but no such decomposition exists.
 // DIAGRAM TODO: Show a compatible table N and several square-like global-section patterns trying to sum to it.
 
 #pause
-#up(here)
+#up()
 
 == The Quantum Tension
 

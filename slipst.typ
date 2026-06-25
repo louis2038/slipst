@@ -9,7 +9,16 @@
 }
 
 // Store navigation actions as metadata. They are converted to data-* attributes later.
-#let up(label, offset: 0, dy: 0) = metadata((slipst-action: (up: label, offset: offset, dy: dy)))
+#let up(..args) = {
+  let labels = args.pos()
+  let named = args.named()
+  assert(labels.len() <= 1, message: "up accepts at most one label")
+  let label = labels.at(0, default: none)
+  let offset = named.at("offset", default: 0)
+  let dy = named.at("dy", default: 0)
+  let end = named.at("end", default: false)
+  metadata((slipst-action: (up: label, offset: offset, dy: dy, end: end)))
+}
 #let alter(num) = metadata((slipst-action: (alter: num)))
 
 // Start a new horizontal section. This is a strong cut: it also starts a new slip,
@@ -279,7 +288,7 @@
     .filter(it => type(it) == dictionary)
     .map(it => it.at("slipst-action", default: none))
     .filter(it => type(it) == dictionary)
-  let up = actions.rev().find(it => it.at("up", default: none) != none)
+  let up = actions.rev().find(it => it.at("up", default: "slipst-missing-up") != "slipst-missing-up")
   let alter = actions.rev().find(it => it.at("alter", default: none) != none)
 
   // Extract speaker notes from metadata.
@@ -314,13 +323,23 @@
     let dy = up.at("dy", default: 0)
     assert(type(dy) == length or dy == 0, message: "dy must be a length")
 
-    if type(anchor) == function {
+    let end = up.at("end", default: false)
+    assert(type(end) == bool, message: "end must be a boolean")
+
+    if anchor == none {
+      anchor = global-slip-idx
+    } else if type(anchor) == function {
       anchor = anchor()
+      anchor = slipst-counter.at(anchor).first()
+    } else {
+      anchor = slipst-counter.at(anchor).first()
     }
-    let anchor = slipst-counter.at(anchor).first()
     attrs.insert("data-slip-up", str(anchor + offset))
     if dy != 0 {
       attrs.insert("data-slip-dy", str(dy.to-absolute().cm()))
+    }
+    if end {
+      attrs.insert("data-slip-end", "true")
     }
   }
 
@@ -361,7 +380,13 @@
       {
         let slip-idx = 1
         for slip in slips {
-          _slip(slip, section-idx: section-idx, slip-idx: slip-idx, width: width, show-fn: show-fn)
+          _slip(
+            slip,
+            section-idx: section-idx,
+            slip-idx: slip-idx,
+            width: width,
+            show-fn: show-fn,
+          )
           slip-idx += 1
         }
       },
@@ -372,7 +397,17 @@
 // Main show rule. It has two paths:
 // - non-HTML output: show a readable linear preview/handout;
 // - HTML output: generate a complete web document with CSS, JS, and slip DOM nodes.
-#let slipst(body, width: 16cm, spacing: auto, margin: 0.5cm, duration: 500, handout: false, show-fn: it => it) = {
+#let slipst(
+  body,
+  width: 16cm,
+  spacing: auto,
+  margin: 0.5cm,
+  duration: 500,
+  end-dy: -10pt,
+  start-dy: -10pt,
+  handout: false,
+  show-fn: it => it,
+) = {
   if dictionary(std).at("html", default: none) == none {
     return context show-fn({
       set page(width: width + margin * 2, height: auto, margin: margin)
@@ -406,6 +441,8 @@
       spacing
     }
     let variables = (
+      "--end-dy": end-dy.to-absolute().cm(),
+      "--start-dy": start-dy.to-absolute().cm(),
       "--slip-width": width.to-absolute().cm(),
       "--slip-spacing": spacing.to-absolute().cm(),
       "--slip-margin": margin.to-absolute().cm(),

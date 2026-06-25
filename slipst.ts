@@ -584,7 +584,9 @@ function openNotesWindow() {
 
   const doc = notesWindow.document;
   doc.open();
-  doc.write("<!DOCTYPE html><html><head><meta charset='utf-8'><title>Slipst \u2014 Speaker Notes</title>");
+  doc.write(
+    "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Slipst \u2014 Speaker Notes</title>",
+  );
   const style = doc.createElement("style");
   style.textContent = [
     "* { margin: 0; padding: 0; box-sizing: border-box; }",
@@ -673,7 +675,11 @@ effect(() => {
 // N key opens the notes window.
 document.addEventListener("keydown", (event) => {
   if (event.key === "n" || event.key === "N") {
-    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+    if (
+      event.target instanceof HTMLInputElement ||
+      event.target instanceof HTMLTextAreaElement
+    )
+      return;
     event.preventDefault();
     openNotesWindow();
   }
@@ -782,6 +788,11 @@ const layoutEffect = () => {
       `.slip[data-section="${currentSection.value}"][data-slip="${currentSlip.value}"]`,
     )
     ?.getAttribute("data-slip-dy");
+  let end = document
+    .querySelector(
+      `.slip[data-section="${currentSection.value}"][data-slip="${currentSlip.value}"]`,
+    )
+    ?.getAttribute("data-slip-end");
 
   for (let i = currentSlip.value - 1; i > 0; i--) {
     if (isNotNil(up)) break;
@@ -795,8 +806,27 @@ const layoutEffect = () => {
         `.slip[data-section="${currentSection.value}"][data-slip="${i}"]`,
       )
       ?.getAttribute("data-slip-dy");
+    end = document
+      .querySelector(
+        `.slip[data-section="${currentSection.value}"][data-slip="${i}"]`,
+      )
+      ?.getAttribute("data-slip-end");
   }
-
+  const endDyRaw = getComputedStyle(
+    document.getElementById("section-container")!,
+  )
+    .getPropertyValue("--end-dy")
+    .trim()
+    .replace(/\u2212/g, "-");
+  const endDyValue = endDyRaw ? parseFloat(endDyRaw) : 0;
+  const startDyRaw = getComputedStyle(
+    document.getElementById("section-container")!,
+  )
+    .getPropertyValue("--start-dy")
+    .trim()
+    .replace(/\u2212/g, "-");
+  const startDyValue = startDyRaw ? parseFloat(startDyRaw) : 0;
+  let dyValue = isNotNil(dy) ? parseFloat(dy.replace(/\u2212/g, "-")) : 0;
   if (isNotNil(up)) {
     const anchors = document.querySelectorAll(`[data-global-slip="${up}"]`);
     const anchor = Array.from(anchors)
@@ -807,13 +837,29 @@ const layoutEffect = () => {
     const container = document.querySelector(
       `.slip-container[data-section="${currentSection.value}"]`,
     );
+    if (!(anchor instanceof HTMLElement)) {
+      console.warn(`Slipst #up target does not exist: global slip ${up}`);
+    }
     if (anchor instanceof HTMLElement && container instanceof HTMLElement) {
-      if (isNotNil(dy)) {
-        // dy allows scrolling to a point inside the target slip instead of its top edge.
-        const dyValue = parseFloat(dy);
-        container.style.top = `calc(${-anchor.offsetTop}px - ${dyValue} * var(--slip-1cm))`;
+      const marginTop =
+        parseFloat(window.getComputedStyle(container).marginTop) || 0;
+      if (end === "true") {
+        // Align the target slip bottom with the viewport bottom.
+        const viewportHeight =
+          container.closest("main")?.clientHeight ?? window.innerHeight;
+        const anchorBottom =
+          marginTop + anchor.offsetTop + anchor.getBoundingClientRect().height;
+        const totalDy = dyValue + endDyValue;
+        const sign = totalDy >= 0 ? "+" : "-";
+        container.style.top = `calc(${viewportHeight - anchorBottom}px ${sign} ${Math.abs(totalDy)} * var(--slip-1cm))`;
       } else {
-        container.style.top = `${-anchor.offsetTop}px`;
+        const totalDy = dyValue + startDyValue;
+        if (totalDy !== 0) {
+          const sign = totalDy >= 0 ? "-" : "+";
+          container.style.top = `calc(${-anchor.offsetTop - marginTop}px ${sign} ${Math.abs(totalDy)} * var(--slip-1cm))`;
+        } else {
+          container.style.top = `${-anchor.offsetTop - marginTop}px`;
+        }
       }
     }
   }
@@ -824,11 +870,16 @@ effect(layoutEffect);
 if (document.defaultView) {
   document.defaultView.addEventListener("resize", () => {
     document.documentElement.style.setProperty("--transition-duration", "0s");
-    document.documentElement.style.setProperty("--section-transition-duration", "0s");
+    document.documentElement.style.setProperty(
+      "--section-transition-duration",
+      "0s",
+    );
     layoutEffect();
     setTimeout(() => {
       document.documentElement.style.removeProperty("--transition-duration");
-      document.documentElement.style.removeProperty("--section-transition-duration");
+      document.documentElement.style.removeProperty(
+        "--section-transition-duration",
+      );
     }, 1);
   });
 }
