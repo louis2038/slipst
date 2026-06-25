@@ -420,7 +420,6 @@
         section-idx += 1
         if section-idx > 1 {
           pagebreak()
-          [caca proute]
         }
         for slip in section {
           slip.join()
