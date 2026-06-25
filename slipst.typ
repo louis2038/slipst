@@ -1,5 +1,9 @@
 #import "utils.typ": *
 
+#let preview-mode = state("preview-mode", false)
+#let slipst-counter = counter("slipst")
+#let slipst-alter-counter = counter("slipst-alter")
+
 // In PDF/preview mode, a pause is only a paragraph break so the document stays readable.
 // In HTML mode, it becomes metadata that _cut uses to split the document into slips.
 #let pause = if dictionary(std).at("html", default: none) == none {
@@ -24,6 +28,9 @@
 // Start a new horizontal section. This is a strong cut: it also starts a new slip,
 // so authors do not need to write #pause before or after #right().
 #let right() = metadata("slipst-right")
+
+// Page break in PDF mode only. No effect in HTML.
+#let next-pdf-slide() = metadata("slipst-next-pdf-slide")
 
 // Normalize a raw Typst block, string, or arbitrary value into source text.
 #let _source(it) = {
@@ -85,10 +92,6 @@
   )
 }
 
-#let preview-mode = state("preview-mode", false)
-#let slipst-counter = counter("slipst")
-#let slipst-alter-counter = counter("slipst-alter")
-
 // Read the current alter index. Use inside #context blocks that wrap cetz.canvas().
 #let get-alter() = slipst-alter-counter.get().first()
 #let get-mode() = preview-mode.get()
@@ -142,7 +145,7 @@
   if it.func() != metadata {
     return false
   }
-  if it.value == "slipst-pause" or it.value == "slipst-right" {
+  if it.value == "slipst-pause" or it.value == "slipst-right" or it.value == "slipst-next-pdf-slide" {
     return true
   }
   if type(it.value) == dictionary {
@@ -408,9 +411,13 @@
   handout: false,
   show-fn: it => it,
 ) = {
+  let slide-mode = sys.inputs.at("slide-mode", default: none) == "true"
+
   if dictionary(std).at("html", default: none) == none {
+    let page-width = if slide-mode { 16cm } else { width + margin * 2 }
+    let page-height = if slide-mode { 12cm } else { auto }
     return context show-fn({
-      set page(width: width + margin * 2, height: auto, margin: margin)
+      set page(width: page-width, height: page-height, margin: margin)
       preview-mode.update(true)
 
       let resolved-spacing = if spacing == auto { par.spacing } else { spacing }
@@ -422,8 +429,13 @@
           pagebreak()
         }
         for slip in section {
+          let has-next-pdf-slide = slip.any(it => it.func() == metadata and it.value == "slipst-next-pdf-slide")
           slip.join()
-          v(resolved-spacing)
+          if slide-mode or has-next-pdf-slide {
+            pagebreak()
+          } else {
+            v(resolved-spacing)
+          }
         }
       }
     })

@@ -676,7 +676,7 @@ This mode is essential for controlling interactive widgets like 3D plots or scro
 
 == Controls summary
 
-#align(center, table(
+#table(
   columns: 2,
   align: (left, left),
   stroke: none,
@@ -692,7 +692,7 @@ This mode is essential for controlling interactive widgets like 3D plots or scro
   [Middle-click (long)], [Toggle animation mode],
   [N], [Open speaker notes],
   table.hline(),
-))
+)
 
 = Function Reference
 
@@ -844,6 +844,16 @@ Convenience template over `boxjs` with Anime.js bundled. Same parameters as `box
 )
 ````
 
+== `next-pdf-slide()`
+
+Inserts a page break in PDF mode only. No effect in HTML. Useful for manually controlling PDF slide boundaries without creating a new horizontal section.
+
+```typst
+#next-pdf-slide()
+```
+
+Unlike `#right()`, this does *not* start a new horizontal section. It only breaks the page in the PDF output.
+
 = PDF Handout
 
 Slipst can export a PDF handout with all slips rendered linearly:
@@ -859,3 +869,13 @@ typst compile your-presentation.typ --format pdf
 ```
 
 Each `#right()` creates a new page in the PDF.
+
+== Slide mode
+
+For a classic slide-style PDF (fixed 4:3 pages, one slip per page), compile with the `slide-mode` input flag:
+
+```bash
+typst compile your-presentation.typ --format pdf --input slide-mode=true
+```
+
+In slide mode, each slip gets its own page (16cm #sym.times 12cm). You can also use `#next-pdf-slide()` to manually break pages in the PDF without affecting the HTML presentation.

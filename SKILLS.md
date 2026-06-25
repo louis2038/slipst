@@ -26,6 +26,9 @@ With options:
   margin: 0.5cm,     // edge margin
   duration: 500,     // transition duration in ms
   handout: false,    // true = PDF handout mode
+  end-dy: -10pt, // offset from bottom of last slip to bottom of screen
+  start-dy: -10pt, // offset from top of first slip to top of screen
+  show-fn: template // custom function that is apply for each frame/slipst
 )
 ```
 
@@ -96,6 +99,20 @@ With offset and dy:
 ```
 
 `offset` is counted in slips: `0` = selected slip, `-1` = previous slip, `1` = next slip.
+
+## Prefere always offset or end parameter
+
+This create very convinient way to scroll to a specific slip, and avoid the problem of forward labels.
+
+```typst
+#lorem(40)
+#pause
+But, we miss something ...
+#pause
+// In this example, because lorem take a lot of place, i want a little extra space, so in use end: true, to provide it directly.
+#up(end: true)
+The idea is that ...
+```
 
 ## Reveal Animations (uncover / only)
 
